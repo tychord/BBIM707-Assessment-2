@@ -1,0 +1,218 @@
+use("BBIM707_Olist_DB")
+switched to db BBIM707_Olist_DB
+
+use BBIM707_Olist_DB
+
+db.olist_orders_integrated.aggregate([
+  {
+    $group: {
+      _id: "$order_status",
+      total_orders: { $sum: 1 }
+    }
+  },
+  {
+    $sort: { total_orders: -1 }
+  }
+])
+already on db BBIM707_Olist_DB
+
+db.olist_orders_integrated.aggregate([
+  {
+    $group: {
+      _id: "$order_status",
+      total_orders: { $sum: 1 }
+    }
+  },
+  {
+    $sort: { total_orders: -1 }
+  }
+]).toArray()
+[
+  { _id: 'delivered', total_orders: 96478 },
+  { _id: 'shipped', total_orders: 1107 },
+  { _id: 'canceled', total_orders: 625 },
+  { _id: 'unavailable', total_orders: 609 },
+  { _id: 'invoiced', total_orders: 314 },
+  { _id: 'processing', total_orders: 301 },
+  { _id: 'created', total_orders: 5 },
+  { _id: 'approved', total_orders: 2 }
+]
+
+db.olist_orders_integrated.aggregate([
+  {
+    $match: {
+      order_status: "delivered",
+      delivery_days: { $type: "number", $gte: 0 }
+    }
+  },
+  {
+    $group: {
+      _id: "$state",
+      total_orders: { $sum: 1 },
+      avg_delivery_days: { $avg: "$delivery_days" }
+    }
+  },
+  {
+    $sort: { avg_delivery_days: -1 }
+  },
+  {
+    $limit: 10
+  },
+  {
+    $project: {
+      _id: 0,
+      state: "$_id",
+      total_orders: 1,
+      avg_delivery_days: { $round: ["$avg_delivery_days", 2] }
+    }
+  }
+]).toArray()
+[
+  { total_orders: 41, state: 'RR', avg_delivery_days: 29.39 },
+  { total_orders: 67, state: 'AP', avg_delivery_days: 27.19 },
+  { total_orders: 145, state: 'AM', avg_delivery_days: 26.43 },
+  { total_orders: 397, state: 'AL', avg_delivery_days: 24.54 },
+  { total_orders: 946, state: 'PA', avg_delivery_days: 23.77 },
+  { total_orders: 717, state: 'MA', avg_delivery_days: 21.57 },
+  { total_orders: 335, state: 'SE', avg_delivery_days: 21.52 },
+  { total_orders: 1279, state: 'CE', avg_delivery_days: 21.27 },
+  { total_orders: 80, state: 'AC', avg_delivery_days: 21.04 },
+  { total_orders: 517, state: 'PB', avg_delivery_days: 20.43 }
+]
+
+db.olist_orders_integrated
+  .find({ state: "SP" })
+  .explain("executionStats")
+{
+    maxIndexedOrSolutionsReached: false,
+    maxIndexedAndSolutionsReached: false,
+    maxScansToExplodeReached: false,
+    prunedSimilarIndexes: false,
+    winningPlan: {
+      isCached: false,
+      stage: 'COLLSCAN',
+      filter: {
+        state: {
+          '$eq': 'SP'
+        }
+      },
+      direction: 'forward'
+    },
+    rejectedPlans: []
+  },
+  executionStats: {
+    executionSuccess: true,
+    nReturned: 41746,
+    executionTimeMillis: 810,
+    totalKeysExamined: 0,
+    totalDocsExamined: 99441,
+    executionStages: {
+      isCached: false,
+      stage: 'COLLSCAN',
+      filter: {
+        state: {
+          '$eq': 'SP'
+        }
+      },
+      nReturned: 41746,
+      executionTimeMillisEstimate: 701,
+      works: 99442,
+      advanced: 41746,
+      needTime: 57695,
+      needYield: 0,
+      saveState: 41,
+      restoreState: 41,
+      isEOF: 1,
+      direction: 'forward',
+      docsExamined: 99441
+    }
+  },
+  queryShapeHash: '206C0746AAE0B43B1FD3F793CFF17A8D1E68DD46E368310ADBEEFA9E00588D8D',
+  command: {
+    find: 'olist_orders_integrated',
+    filter: {
+      state: 'SP'
+    },
+    '$db': 'BBIM707_Olist_DB'
+  },
+  serverInfo: {
+    host: 'LAPTOP-O4F66IN5',
+    port: 27017,
+    version: '8.0.13',
+    gitVersion: '8dc5cd2a30c4524132e2d44bb314544dc477e611'
+  },
+  serverParameters: {
+    internalQueryFacetBufferSizeBytes: 104857600,
+    internalQueryFacetMaxOutputDocSizeBytes: 104857600,
+    internalLookupStageIntermediateDocumentMaxSizeBytes: 104857600,
+    internalDocumentSourceGroupMaxMemoryBytes: 104857600,
+    internalQueryMaxBlockingSortMemoryUsageBytes: 104857600,
+    internalQueryProhibitBlockingMergeOnMongoS: 0,
+    internalQueryMaxAddToSetBytes: 104857600,
+    internalDocumentSourceSetWindowFieldsMaxMemoryBytes: 104857600,
+    internalQueryFrameworkControl: 'trySbeRestricted',
+    internalQueryPlannerIgnoreIndexWithCollationForRegex: 1
+  },
+  ok: 1
+}
+
+db.olist_orders_integrated.createIndex(
+  { state: 1 },
+  { name: "idx_state_performance" }
+)
+MongoServerError[IndexOptionsConflict]: An equivalent index already exists with a different name and options. Requested index: { v: 2, key: { state: 1 }, name: "idx_state_performance" }, existing index: { v: 2, key: { state: 1 }, name: "idx_customer_state", hidden: true }
+
+use("BBIM707_Olist_DB");
+
+db.olist_orders_integrated.getIndexes();
+[
+  { v: 2, key: { _id: 1 }, name: '_id_' },
+  { v: 2, key: { state: 1 }, name: 'idx_customer_state', hidden: true }
+]
+
+db.olist_orders_integrated.unhideIndex("idx_customer_state");
+{ hidden_old: true, hidden_new: false, ok: 1 }
+
+db.olist_orders_integrated.getIndexes();
+[
+  { v: 2, key: { _id: 1 }, name: '_id_' },
+  { v: 2, key: { state: 1 }, name: 'idx_customer_state' }
+]
+
+const result = db.olist_orders_integrated
+  .find({ state: "SP" })
+  .explain("executionStats");
+
+printjson({
+  executionPlan: result.queryPlanner.winningPlan,
+  documentsReturned: result.executionStats.nReturned,
+  executionTimeMillis: result.executionStats.executionTimeMillis,
+  totalDocsExamined: result.executionStats.totalDocsExamined,
+  totalKeysExamined: result.executionStats.totalKeysExamined
+});
+{
+  executionPlan: {
+    isCached: false,
+    stage: 'FETCH',
+    inputStage: {
+      stage: 'IXSCAN',
+      keyPattern: [Object],
+      indexName: 'idx_customer_state',
+      isMultiKey: false,
+      multiKeyPaths: [Object],
+      isUnique: false,
+      isSparse: false,
+      isPartial: false,
+      indexVersion: 2,
+      direction: 'forward',
+      indexBounds: [Object]
+    }
+  },
+  documentsReturned: 41746,
+  executionTimeMillis: 848,
+  totalDocsExamined: 41746,
+  totalKeysExamined: 41746
+}
+BBIM707_Olist_DB
+
+
